@@ -7,6 +7,11 @@
 * export-ignore
 /src/ -export-ignore
 /src/** -export-ignore
+/.phpstorm.meta.php -export-ignore
+/.phpstorm.meta.php/ -export-ignore
+/.phpstorm.meta.php/** -export-ignore
+/doc/ -export-ignore
+/doc/** -export-ignore
 /CHANGELOG.md -export-ignore
 /README.md -export-ignore
 /composer.json -export-ignore

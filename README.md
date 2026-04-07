@@ -132,13 +132,13 @@ Middleware class strings remain lazy in both phases and are resolved only when e
 
 ## Before and During `handle()`
 
-| Question | Before `handle()` | During `handle()` |
-| --- | --- | --- |
-| Main object | `MiddlewareDispatcher` | `DispatchControl` |
-| Typical place | bootstrap, constructor setup, module configuration | currently running middleware |
-| What can change | configured middleware list and configured final handler | only the remaining tail for the current request and that request's final handler |
-| Scope | affects subsequent requests handled by that dispatcher instance | affects only the current request |
-| How you access it | direct variable/reference to the dispatcher | request attribute, if the dispatcher is configured to expose it |
+| Question          | Before `handle()`                                               | During `handle()`                                                                |
+|-------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------------|
+| Main object       | `MiddlewareDispatcher`                                          | `DispatchControl`                                                                |
+| Typical place     | bootstrap, constructor setup, module configuration              | currently running middleware                                                     |
+| What can change   | configured middleware list and configured final handler         | only the remaining tail for the current request and that request's final handler |
+| Scope             | affects subsequent requests handled by that dispatcher instance | affects only the current request                                                 |
+| How you access it | direct variable/reference to the dispatcher                     | request attribute, if the dispatcher is configured to expose it                  |
 
 ## Configuration API
 

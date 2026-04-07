@@ -1,51 +1,52 @@
 {
-    "name": "nih/middleware-dispatcher",
-    "type": "library",
-    "license": "MIT",
-    "description": "Fiber-based PSR-15 dispatcher with runtime pipeline control and lazy PSR-11 resolution.",
-    "keywords": [
-        "middleware",
-        "dispatcher",
-        "fiber",
-        "pipeline",
-        "psr-11",
-        "psr-15",
-        "runtime-control",
-        "lazy-resolution"
-    ],
-    "support": {
-        "docs": "https://github.com/nih-soft/middleware-dispatcher#readme",
-        "issues": "https://github.com/nih-soft/middleware-dispatcher/issues",
-        "source": "https://github.com/nih-soft/middleware-dispatcher"
-    },
-    "require": {
-        "php": "8.4 - 8.5",
-        "psr/container": "^2.0",
-        "psr/http-message": "^2.0",
-        "psr/http-server-handler": "^1.0",
-        "psr/http-server-middleware": "^1.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "NIH\\MiddlewareDispatcher\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "NIH\\MiddlewareDispatcher\\Tests\\": "tests/"
-        }
-    },
-    "scripts": {
-        "test": "phpunit --testdox"
-    },
-    "scripts-descriptions": {
-        "test": "Run the PHPUnit suite in TestDox mode"
-    },
-    "config": {
-        "sort-packages": true
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^11.5",
-        "psr/http-factory": "^1.1"
+  "name": "nih/middleware-dispatcher",
+  "type": "library",
+  "license": "MIT",
+  "description": "Fiber-based PSR-15 middleware dispatcher for large or dynamic pipelines, with per-request mutation and lazy PSR-11 resolution.",
+  "keywords": [
+    "middleware",
+    "middleware-dispatcher",
+    "dispatcher",
+    "fiber",
+    "pipeline",
+    "dynamic-pipeline",
+    "lazy-resolution",
+    "psr-7",
+    "psr-15"
+  ],
+  "support": {
+    "docs": "https://github.com/nih-soft/middleware-dispatcher#readme",
+    "issues": "https://github.com/nih-soft/middleware-dispatcher/issues",
+    "source": "https://github.com/nih-soft/middleware-dispatcher"
+  },
+  "require": {
+    "php": "8.4 - 8.5",
+    "psr/container": "^2.0",
+    "psr/http-message": "^2.0",
+    "psr/http-server-handler": "^1.0",
+    "psr/http-server-middleware": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "NIH\\MiddlewareDispatcher\\": "src/"
     }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "NIH\\MiddlewareDispatcher\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --testdox"
+  },
+  "scripts-descriptions": {
+    "test": "Run the PHPUnit suite in TestDox mode"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.5",
+    "psr/http-factory": "^1.1"
+  }
 }

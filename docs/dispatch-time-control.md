@@ -30,7 +30,7 @@ During `handle()`, the dispatcher creates a dispatch-time control object and may
 new MiddlewareDispatcher(
     ContainerInterface $container,
     array $middlewares,
-    RequestHandlerInterface $finalHandler,
+    RequestHandlerInterface|string $finalHandler,
     string $attributeName = DispatchControl::class,
 )
 ```
@@ -81,7 +81,7 @@ final class RuntimeMutationMiddleware implements MiddlewareInterface
         $control->remove(App\Http\Middleware\LegacyPolicy::class);
 
         // This request may finish with a different fallback handler.
-        $control->setFinalHandler(new App\Tenant\Http\Handler\TenantFallbackHandler());
+        $control->setFinalHandler(App\Tenant\Http\Handler\TenantFallbackHandler::class);
 
         return $handler->handle($request);
     }
@@ -95,7 +95,7 @@ final class RuntimeMutationMiddleware implements MiddlewareInterface
 When you call mutation methods on `MiddlewareDispatcher` before starting the pipeline:
 
 - `append()`, `prepend()`, and `remove()` change the configured middleware list;
-- `setFinalHandler()` changes the configured final handler;
+- `setFinalHandler()` changes the configured final handler and accepts either a direct handler instance or a class string resolved lazily;
 - the changes affect subsequent requests handled by that dispatcher instance.
 
 ### During `handle()`
@@ -104,7 +104,7 @@ When you call the same methods on `DispatchControl` from middleware:
 
 - they mutate only the current request's dispatch-time middleware tail;
 - they never mutate middleware that has already executed;
-- `setFinalHandler()` replaces the final handler only for the current request;
+- `setFinalHandler()` replaces the final handler only for the current request and accepts either a direct handler instance or a class string resolved lazily;
 - changes do not leak into the next request.
 
 This is useful when middleware decides that the current request should finish
@@ -156,7 +156,7 @@ Available methods:
   Inserts middleware earlier in the remaining tail of the current request.
 - `remove(string $middlewareClass): int`
   Removes all matching middleware entries from the remaining tail of the current request.
-- `setFinalHandler(RequestHandlerInterface $handler): void`
+- `setFinalHandler(RequestHandlerInterface|string $handler): void`
   Replaces the current request final handler. The final handler is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
 - `bypassOuter(): void`
   Marks the current middleware as the unwind boundary. See [`bypassOuter()` vs Short-Circuit](#bypassouter-vs-short-circuit).

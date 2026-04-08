@@ -69,6 +69,57 @@ final class InvalidResolvedLazyMiddleware
 {
 }
 
+final class AutoResolvedConfiguredFinalHandler implements RequestHandlerInterface
+{
+    public static int $constructed = 0;
+
+    public function __construct()
+    {
+        self::$constructed++;
+    }
+
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        return (new FakeResponseFactory())
+            ->createResponse(200)
+            ->withHeader('X-Final-Handler', 'configured');
+    }
+}
+
+final class AutoResolvedReplacementFinalHandler implements RequestHandlerInterface
+{
+    public static int $constructed = 0;
+
+    public function __construct()
+    {
+        self::$constructed++;
+    }
+
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        return (new FakeResponseFactory())
+            ->createResponse(200)
+            ->withHeader('X-Final-Handler', 'replacement');
+    }
+}
+
+final class AutoResolvedRuntimeFinalHandler implements RequestHandlerInterface
+{
+    public static int $constructed = 0;
+
+    public function __construct()
+    {
+        self::$constructed++;
+    }
+
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        return (new FakeResponseFactory())
+            ->createResponse(200)
+            ->withHeader('X-Final-Handler', 'runtime');
+    }
+}
+
 final class MiddlewareDispatcherTest extends TestCase
 {
     public function test_it_can_append_middleware_before_pipeline_start(): void
@@ -566,6 +617,45 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('replaced', $secondResponse->getHeaderLine('X-Final-Handler'));
     }
 
+    public function test_it_can_use_a_lazy_class_string_final_handler_from_constructor(): void
+    {
+        AutoResolvedConfiguredFinalHandler::$constructed = 0;
+
+        $dispatcher = new MiddlewareDispatcher(
+            new TestContainer(),
+            [],
+            AutoResolvedConfiguredFinalHandler::class,
+        );
+
+        self::assertSame(0, AutoResolvedConfiguredFinalHandler::$constructed);
+
+        $response = $dispatcher->handle(new FakeServerRequest('/set-final-from-constructor-class-string', 'GET'));
+
+        self::assertSame(1, AutoResolvedConfiguredFinalHandler::$constructed);
+        self::assertSame('configured', $response->getHeaderLine('X-Final-Handler'));
+    }
+
+    public function test_it_can_set_a_lazy_class_string_final_handler_before_pipeline_start(): void
+    {
+        AutoResolvedReplacementFinalHandler::$constructed = 0;
+
+        $responseFactory = new FakeResponseFactory();
+        $dispatcher = new MiddlewareDispatcher(
+            new TestContainer(),
+            [],
+            $this->createTaggedFinalHandler($responseFactory, 'base'),
+        );
+
+        $dispatcher->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+
+        self::assertSame(0, AutoResolvedReplacementFinalHandler::$constructed);
+
+        $response = $dispatcher->handle(new FakeServerRequest('/set-final-before-start-class-string', 'GET'));
+
+        self::assertSame(1, AutoResolvedReplacementFinalHandler::$constructed);
+        self::assertSame('replacement', $response->getHeaderLine('X-Final-Handler'));
+    }
+
     public function test_it_can_set_final_handler_for_current_request_only_during_execution(): void
     {
         $responseFactory = new FakeResponseFactory();
@@ -618,6 +708,53 @@ final class MiddlewareDispatcherTest extends TestCase
         ));
         $secondResponse = $dispatcher->handle(new FakeServerRequest('/set-final-during-execution-second', 'GET'));
 
+        self::assertSame('runtime', $firstResponse->getHeaderLine('X-Final-Handler'));
+        self::assertSame('base', $secondResponse->getHeaderLine('X-Final-Handler'));
+    }
+
+    public function test_it_can_set_a_lazy_class_string_final_handler_for_current_request_only_during_execution(): void
+    {
+        AutoResolvedRuntimeFinalHandler::$constructed = 0;
+
+        $responseFactory = new FakeResponseFactory();
+        $dispatcher = new MiddlewareDispatcher(
+            new TestContainer(),
+            [
+                new class implements MiddlewareInterface {
+                    public function process(
+                        ServerRequestInterface $request,
+                        RequestHandlerInterface $handler,
+                    ): ResponseInterface {
+                        if ($request->getQueryParams()['mutate'] ?? false) {
+                            $control = $request->getAttribute(DispatchControl::class);
+
+                            if (!$control instanceof DispatchControl) {
+                                throw new \LogicException('Dispatch control attribute is missing.');
+                            }
+
+                            $control->setFinalHandler(AutoResolvedRuntimeFinalHandler::class);
+                        }
+
+                        return $handler->handle($request);
+                    }
+                },
+            ],
+            $this->createTaggedFinalHandler($responseFactory, 'base'),
+        );
+
+        self::assertSame(0, AutoResolvedRuntimeFinalHandler::$constructed);
+
+        $firstResponse = $dispatcher->handle(new FakeServerRequest(
+            '/set-final-during-execution-class-string-first',
+            'GET',
+            queryParams: ['mutate' => true],
+        ));
+        $secondResponse = $dispatcher->handle(new FakeServerRequest(
+            '/set-final-during-execution-class-string-second',
+            'GET',
+        ));
+
+        self::assertSame(1, AutoResolvedRuntimeFinalHandler::$constructed);
         self::assertSame('runtime', $firstResponse->getHeaderLine('X-Final-Handler'));
         self::assertSame('base', $secondResponse->getHeaderLine('X-Final-Handler'));
     }

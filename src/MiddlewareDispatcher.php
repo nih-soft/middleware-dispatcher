@@ -27,11 +27,12 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
 
     /**
      * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middlewares
+     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
      */
     public function __construct(
         private readonly ContainerInterface $container,
         array $middlewares,
-        RequestHandlerInterface $finalHandler,
+        RequestHandlerInterface|string $finalHandler,
         private readonly string $attributeName = DispatchControl::class,
     ) {
         $this->middlewares = $middlewares;
@@ -80,7 +81,7 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
                 while ($response === null && $throwable === null) {
                     if ($nextIndex >= count($control->middlewares)) {
                         try {
-                            $response = $control->finalHandler->handle($currentRequest);
+                            $response = $this->resolveFinalHandler($control->finalHandler)->handle($currentRequest);
                         } catch (Throwable $caught) {
                             $throwable = $caught;
                         }
@@ -248,6 +249,40 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
             'Resolved middleware %s must implement %s.',
             $middleware,
             MiddlewareInterface::class,
+        ));
+    }
+
+    /**
+     * Resolves a final handler entry to a concrete request handler instance.
+     *
+     * Direct handler objects are returned as-is. Class strings are resolved
+     * lazily through the configured PSR-11 container.
+     *
+     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
+     * @throws RuntimeException If the class string is empty or the resolved value
+     *                          does not implement {@see RequestHandlerInterface}.
+     * @throws ContainerExceptionInterface
+     */
+    private function resolveFinalHandler(RequestHandlerInterface|string $finalHandler): RequestHandlerInterface
+    {
+        if ($finalHandler instanceof RequestHandlerInterface) {
+            return $finalHandler;
+        }
+
+        if ($finalHandler === '') {
+            throw new RuntimeException('Final handler class-string must be non-empty.');
+        }
+
+        $resolvedFinalHandler = $this->container->get($finalHandler);
+
+        if ($resolvedFinalHandler instanceof RequestHandlerInterface) {
+            return $resolvedFinalHandler;
+        }
+
+        throw new RuntimeException(sprintf(
+            'Resolved final handler %s must implement %s.',
+            $finalHandler,
+            RequestHandlerInterface::class,
         ));
     }
 

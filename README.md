@@ -123,7 +123,7 @@ $dispatcher->prepend(
 $dispatcher->remove(App\Http\Middleware\DebugToolbarMiddleware::class);
 
 // The final handler is configured separately because it is not middleware.
-$dispatcher->setFinalHandler(new App\Admin\Http\Handler\AdminFallbackHandler());
+$dispatcher->setFinalHandler(App\Admin\Http\Handler\AdminFallbackHandler::class);
 
 $response = $dispatcher->handle($request);
 ```
@@ -148,7 +148,7 @@ Middleware class strings remain lazy in both phases and are resolved only when e
 new MiddlewareDispatcher(
     ContainerInterface $container,
     array $middlewares,
-    RequestHandlerInterface $finalHandler,
+    RequestHandlerInterface|string $finalHandler,
     string $attributeName = DispatchControl::class,
 )
 ```
@@ -159,20 +159,20 @@ Available methods:
 - `append(MiddlewareInterface|string|array $middleware, string $after = ''): void`
 - `prepend(MiddlewareInterface|string|array $middleware, string $before = ''): void`
 - `remove(string $middlewareClass): int`
-- `setFinalHandler(RequestHandlerInterface $handler): void`
+- `setFinalHandler(RequestHandlerInterface|string $handler): void`
 
 Before `handle()` starts, `MiddlewareDispatcher` acts as the configuration object for the pipeline.
 
 - `append(..., $after)` inserts after the last matching middleware in the configured pipeline. If no match is found, it appends to the end of the configured pipeline.
 - `prepend(..., $before)` inserts before the first matching middleware in the configured pipeline. If no match is found, it prepends to the start of the configured pipeline.
-- `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
+- `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It may be provided either as a direct handler instance or as a class string resolved lazily through the configured container. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
 - The optional `$attributeName` constructor argument controls how dispatch-time `DispatchControl` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
 
 ## Dispatch-Time Control
 
 During `handle()`, the dispatcher may expose a per-request `DispatchControl` object through request attributes. Its API intentionally mirrors the pre-dispatch configuration phase: the same `append()`, `prepend()`, `remove()`, and `setFinalHandler()` methods are available after the pipeline has started, plus the dispatch-time-specific `bypassOuter()`. That keeps dynamic dispatch behavior predictable and reduces cognitive overhead for developers.
 
-At dispatch time, `setFinalHandler()` has the same conceptual role, but it affects only the current request. Middleware may use it to replace the currently configured final handler for that request.
+At dispatch time, `setFinalHandler()` has the same conceptual role, but it affects only the current request. Middleware may use it to replace the currently configured final handler for that request, either with a direct handler instance or with a lazily resolved class string.
 
 For dispatch-time mutation semantics, request attribute behavior, and `bypassOuter()` details, see [docs/dispatch-time-control.md](docs/dispatch-time-control.md). For advanced parent/child dispatcher coordination, see [docs/nested-dispatchers.md](docs/nested-dispatchers.md).
 

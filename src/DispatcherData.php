@@ -21,8 +21,11 @@ abstract class DispatcherData
      */
     protected array $middlewares = [];
 
-    /** @noinspection PhpGetterAndSetterCanBeReplacedWithPropertyHooksInspection */
-    protected RequestHandlerInterface $finalHandler;
+    /**
+     * @var RequestHandlerInterface|class-string<RequestHandlerInterface>
+     * @noinspection PhpGetterAndSetterCanBeReplacedWithPropertyHooksInspection
+     */
+    protected RequestHandlerInterface|string $finalHandler;
 
     /**
      * Tracks the first middleware index that belongs to the currently mutable
@@ -172,8 +175,10 @@ abstract class DispatcherData
 
     /**
      * Replaces the configured final handler or the current request final handler.
+     *
+     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $handler
      */
-    final public function setFinalHandler(RequestHandlerInterface $handler): void
+    final public function setFinalHandler(RequestHandlerInterface|string $handler): void
     {
         $this->finalHandler = $handler;
     }

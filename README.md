@@ -160,14 +160,12 @@ Available methods:
 - `prepend(MiddlewareInterface|string|array $middleware, string $before = ''): void`
 - `remove(string $middlewareClass): int`
 - `setFinalHandler(RequestHandlerInterface $handler): void`
-- `resolveMiddleware(MiddlewareInterface|string $middleware): MiddlewareInterface`
 
 Before `handle()` starts, `MiddlewareDispatcher` acts as the configuration object for the pipeline.
 
 - `append(..., $after)` inserts after the last matching middleware in the configured pipeline. If no match is found, it appends to the end of the configured pipeline.
 - `prepend(..., $before)` inserts before the first matching middleware in the configured pipeline. If no match is found, it prepends to the start of the configured pipeline.
 - `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
-- `resolveMiddleware()` is a low-level/manual API. It is also a useful integration point for other PSR-15-compatible components that need explicit middleware resolution, for example routers with route-specific middleware such as [`nih/router`](https://packagist.org/packages/nih/router). When a class string is used, the container must resolve it to a `MiddlewareInterface`.
 - The optional `$attributeName` constructor argument controls how dispatch-time `DispatchControl` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
 
 ## Dispatch-Time Control

@@ -228,7 +228,7 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
      *                          does not implement {@see MiddlewareInterface}.
      * @throws ContainerExceptionInterface
      */
-    public function resolveMiddleware(MiddlewareInterface|string $middleware): MiddlewareInterface
+    private function resolveMiddleware(MiddlewareInterface|string $middleware): MiddlewareInterface
     {
         if ($middleware instanceof MiddlewareInterface) {
             return $middleware;

@@ -60,7 +60,7 @@ abstract class DispatcherData
 
         if ($after === '') {
             if (is_array($middleware)) {
-                array_push($this->middlewares, ...array_values($middleware));
+                $this->middlewares = array_merge($this->middlewares, array_values($middleware));
             }
             else {
                 $this->middlewares[] = $middleware;
@@ -86,7 +86,11 @@ abstract class DispatcherData
             }
         }
 
-        array_splice($this->middlewares, $insertAt, 0, $middlewares);
+        $this->middlewares = array_merge(
+            array_slice($this->middlewares, 0, $insertAt),
+            $middlewares,
+            array_slice($this->middlewares, $insertAt),
+        );
     }
 
     /**
@@ -109,32 +113,31 @@ abstract class DispatcherData
             : [$middleware];
 
         if ($this->tailStart === 0 && $before === '') {
-            array_unshift($this->middlewares, ...$middlewares);
+            $this->middlewares = array_merge($middlewares, $this->middlewares);
 
             return;
         }
 
         $count = count($this->middlewares);
         $tailStart = min($this->tailStart, $count);
-
-        if ($before === '') {
-            array_splice($this->middlewares, $tailStart, 0, $middlewares);
-
-            return;
-        }
-
         $insertAt = $tailStart;
 
-        for ($index = $tailStart; $index < $count; $index++) {
-            $currentMiddleware = $this->middlewares[$index];
+        if ($before !== '') {
+            for ($index = $tailStart; $index < $count; $index++) {
+                $currentMiddleware = $this->middlewares[$index];
 
-            if ((is_string($currentMiddleware) ? $currentMiddleware : $currentMiddleware::class) === $before) {
-                $insertAt = $index;
-                break;
+                if ((is_string($currentMiddleware) ? $currentMiddleware : $currentMiddleware::class) === $before) {
+                    $insertAt = $index;
+                    break;
+                }
             }
         }
 
-        array_splice($this->middlewares, $insertAt, 0, $middlewares);
+        $this->middlewares = array_merge(
+            array_slice($this->middlewares, 0, $insertAt),
+            $middlewares,
+            array_slice($this->middlewares, $insertAt),
+        );
     }
 
     /**
@@ -149,15 +152,19 @@ abstract class DispatcherData
         $tailStart = min($this->tailStart, $count);
         $removed = 0;
 
-        for ($index = $count - 1; $index >= $tailStart; $index--) {
+        for ($index = $tailStart; $index < $count; $index++) {
             $currentMiddleware = $this->middlewares[$index];
 
             if ((is_string($currentMiddleware) ? $currentMiddleware : $currentMiddleware::class) !== $middlewareClass) {
                 continue;
             }
 
-            array_splice($this->middlewares, $index, 1);
+            unset($this->middlewares[$index]);
             $removed++;
+        }
+
+        if ($removed > 0) {
+            $this->middlewares = array_values($this->middlewares);
         }
 
         return $removed;

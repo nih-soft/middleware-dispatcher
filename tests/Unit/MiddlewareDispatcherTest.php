@@ -17,16 +17,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-final readonly class ManuallyResolvedDispatcherMiddleware implements MiddlewareInterface
-{
-    public function process(
-        ServerRequestInterface $request,
-        RequestHandlerInterface $handler,
-    ): ResponseInterface {
-        throw new \LogicException('Not needed in this test.');
-    }
-}
-
 final readonly class MutableRouteMiddleware implements MiddlewareInterface
 {
     public function __construct(
@@ -1319,27 +1309,6 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
         self::assertNull($capturedRequest->getAttribute(DispatchControl::class));
         self::assertArrayNotHasKey('', $capturedRequest->getAttributes());
-    }
-
-    public function test_it_can_resolve_middleware_manually(): void
-    {
-        $resolvedMiddleware = new ManuallyResolvedDispatcherMiddleware();
-        $container = new TestContainer([
-            ManuallyResolvedDispatcherMiddleware::class => $resolvedMiddleware,
-        ]);
-        $dispatcher = new MiddlewareDispatcher(
-            $container,
-            [],
-            new class implements RequestHandlerInterface {
-                public function handle(ServerRequestInterface $request): ResponseInterface
-                {
-                    throw new \LogicException('Final handler must not be called.');
-                }
-            },
-        );
-
-        self::assertSame($resolvedMiddleware, $dispatcher->resolveMiddleware(ManuallyResolvedDispatcherMiddleware::class));
-        self::assertSame($resolvedMiddleware, $dispatcher->resolveMiddleware($resolvedMiddleware));
     }
 
     public function test_it_resolves_middleware_list_lazily_on_handle(): void

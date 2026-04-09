@@ -25,14 +25,11 @@ final class MiddlewareDispatcher implements RequestHandlerInterface
 {
     private bool $isDispatching = false;
 
-    private readonly Pipeline $pipeline;
-
     public function __construct(
         private readonly ContainerInterface $container,
-        Pipeline $pipeline,
+        private readonly Pipeline $pipeline = new Pipeline(),
         private readonly string $attributeName = PipelineControl::class,
     ) {
-        $this->pipeline = $pipeline;
     }
 
     /**

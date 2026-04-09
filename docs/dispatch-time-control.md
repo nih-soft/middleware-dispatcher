@@ -29,7 +29,7 @@ During `handle()`, the dispatcher creates a dispatch-time control object and may
 ```php
 new MiddlewareDispatcher(
     ContainerInterface $container,
-    Pipeline $pipeline,
+    Pipeline $pipeline = new Pipeline(),
     string $attributeName = PipelineControl::class,
 )
 ```

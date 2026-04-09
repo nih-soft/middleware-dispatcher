@@ -679,7 +679,7 @@ final class MiddlewareDispatcherTest extends TestCase
 
     public function test_it_throws_when_final_handler_is_not_configured(): void
     {
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), new Pipeline());
+        $dispatcher = new MiddlewareDispatcher(new TestContainer());
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Final handler class-string must be non-empty.');

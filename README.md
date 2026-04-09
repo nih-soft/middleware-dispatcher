@@ -189,7 +189,7 @@ Before `handle()` starts, `Pipeline` acts as the configuration object for the pi
 ```php
 new MiddlewareDispatcher(
     ContainerInterface $container,
-    Pipeline $pipeline,
+    Pipeline $pipeline = new Pipeline(),
     string $attributeName = PipelineControl::class,
 )
 ```

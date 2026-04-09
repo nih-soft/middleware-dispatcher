@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace NIH\MiddlewareDispatcher\Tests\Unit;
 
-use NIH\MiddlewareDispatcher\DispatchControl;
+use NIH\MiddlewareDispatcher\DispatchRuntime;
 use NIH\MiddlewareDispatcher\MiddlewareDispatcher;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Controllers\Dispatch\DispatchTrace;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Container\TestContainer;
@@ -247,9 +247,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -325,9 +325,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -401,9 +401,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -454,9 +454,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $response = $handler->handle($request);
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -497,9 +497,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $response = $handler->handle($request);
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -569,9 +569,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         if ($request->getQueryParams()['mutate'] ?? false) {
-                            $control = $request->getAttribute(DispatchControl::class);
+                            $control = $request->getAttribute(DispatchRuntime::class);
 
-                            if (!$control instanceof DispatchControl) {
+                            if (!$control instanceof DispatchRuntime) {
                                 throw new \LogicException('Dispatch control attribute is missing.');
                             }
 
@@ -705,9 +705,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         if ($request->getQueryParams()['mutate'] ?? false) {
-                            $control = $request->getAttribute(DispatchControl::class);
+                            $control = $request->getAttribute(DispatchRuntime::class);
 
-                            if (!$control instanceof DispatchControl) {
+                            if (!$control instanceof DispatchRuntime) {
                                 throw new \LogicException('Dispatch control attribute is missing.');
                             }
 
@@ -758,9 +758,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         if ($request->getQueryParams()['mutate'] ?? false) {
-                            $control = $request->getAttribute(DispatchControl::class);
+                            $control = $request->getAttribute(DispatchRuntime::class);
 
-                            if (!$control instanceof DispatchControl) {
+                            if (!$control instanceof DispatchRuntime) {
                                 throw new \LogicException('Dispatch control attribute is missing.');
                             }
 
@@ -805,9 +805,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -848,9 +848,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -894,9 +894,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -953,9 +953,9 @@ final class MiddlewareDispatcherTest extends TestCase
                             : 'skipper';
                         $response = $handler->handle($request->withAttribute('routePipeline', $current));
 
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -1007,9 +1007,9 @@ final class MiddlewareDispatcherTest extends TestCase
                             ? $current . '>outer'
                             : 'outer';
 
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -1037,9 +1037,9 @@ final class MiddlewareDispatcherTest extends TestCase
                             ? $current . '>inner'
                             : 'inner';
 
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -1089,9 +1089,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $this->trace->add('inner:enter');
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -1139,9 +1139,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $this->trace->add('short:enter');
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -1193,9 +1193,9 @@ final class MiddlewareDispatcherTest extends TestCase
 
                 public function handle(ServerRequestInterface $request): ResponseInterface
                 {
-                    $control = $request->getAttribute(DispatchControl::class);
+                    $control = $request->getAttribute(DispatchRuntime::class);
 
-                    if (!$control instanceof DispatchControl) {
+                    if (!$control instanceof DispatchRuntime) {
                         throw new \LogicException('Dispatch control attribute is missing.');
                     }
 
@@ -1223,9 +1223,9 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchControl::class);
+                        $control = $request->getAttribute(DispatchRuntime::class);
 
-                        if (!$control instanceof DispatchControl) {
+                        if (!$control instanceof DispatchRuntime) {
                             throw new \LogicException('Dispatch control attribute is missing.');
                         }
 
@@ -1314,9 +1314,9 @@ final class MiddlewareDispatcherTest extends TestCase
 
                 public function handle(ServerRequestInterface $request): ResponseInterface
                 {
-                    $control = $request->getAttribute(DispatchControl::class);
+                    $control = $request->getAttribute(DispatchRuntime::class);
 
-                    if (!$control instanceof DispatchControl) {
+                    if (!$control instanceof DispatchRuntime) {
                         throw new \LogicException('Dispatch control attribute is missing.');
                     }
 
@@ -1366,8 +1366,8 @@ final class MiddlewareDispatcherTest extends TestCase
         $dispatcher->handle(new FakeServerRequest('/dispatcher-attribute', 'GET'));
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertInstanceOf(DispatchControl::class, $capturedRequest->getAttribute(DispatchControl::class));
-        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(DispatchControl::class));
+        self::assertInstanceOf(DispatchRuntime::class, $capturedRequest->getAttribute(DispatchRuntime::class));
+        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(DispatchRuntime::class));
     }
 
     public function test_it_sets_dispatch_control_on_custom_request_attribute_when_missing(): void
@@ -1402,9 +1402,9 @@ final class MiddlewareDispatcherTest extends TestCase
         $dispatcher->handle(new FakeServerRequest('/dispatcher-attribute-custom', 'GET'));
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertInstanceOf(DispatchControl::class, $capturedRequest->getAttribute($attributeName));
+        self::assertInstanceOf(DispatchRuntime::class, $capturedRequest->getAttribute($attributeName));
         self::assertNotSame($dispatcher, $capturedRequest->getAttribute($attributeName));
-        self::assertNull($capturedRequest->getAttribute(DispatchControl::class));
+        self::assertNull($capturedRequest->getAttribute(DispatchRuntime::class));
     }
 
     public function test_it_does_not_override_existing_request_attribute(): void
@@ -1437,12 +1437,12 @@ final class MiddlewareDispatcherTest extends TestCase
 
         $dispatcher->handle(
             (new FakeServerRequest('/dispatcher-attribute-existing', 'GET'))
-                ->withAttribute(DispatchControl::class, $existingDispatcher),
+                ->withAttribute(DispatchRuntime::class, $existingDispatcher),
         );
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertSame($existingDispatcher, $capturedRequest->getAttribute(DispatchControl::class));
-        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(DispatchControl::class));
+        self::assertSame($existingDispatcher, $capturedRequest->getAttribute(DispatchRuntime::class));
+        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(DispatchRuntime::class));
     }
 
     public function test_it_does_not_set_request_attribute_when_attribute_name_is_empty(): void
@@ -1476,7 +1476,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $dispatcher->handle(new FakeServerRequest('/dispatcher-attribute-empty', 'GET'));
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertNull($capturedRequest->getAttribute(DispatchControl::class));
+        self::assertNull($capturedRequest->getAttribute(DispatchRuntime::class));
         self::assertArrayNotHasKey('', $capturedRequest->getAttributes());
     }
 

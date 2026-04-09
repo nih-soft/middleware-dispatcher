@@ -18,14 +18,14 @@ That isolation applies to dispatcher state itself:
 - a parent dispatcher does not automatically share its mutable runtime state with the child;
 - each dispatcher still manages its own configured middleware list, current runtime tail, and current final handler.
 
-## `DispatchControl` Through Request Attributes
+## `DispatchRuntime` Through Request Attributes
 
 Isolation does not prevent intentional coordination through request attributes.
 
 For example:
 
-- a parent dispatcher may expose its `DispatchControl` under one attribute name;
-- a child dispatcher may expose its own `DispatchControl` under another attribute name;
+- a parent dispatcher may expose its `DispatchRuntime` under one attribute name;
+- a child dispatcher may expose its own `DispatchRuntime` under another attribute name;
 - middleware running inside the child dispatcher may still read and use the parent control object from the request.
 
 That is explicit coordination through the request, not shared dispatcher state.

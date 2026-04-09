@@ -13,7 +13,7 @@ use RuntimeException;
  * Mutation methods change only the remaining tail of the current request and do
  * not affect the next request handled by the dispatcher instance.
  */
-final class DispatchControl extends DispatcherData
+final class DispatchRuntime extends DispatchConfig
 {
     protected function __construct(MiddlewareDispatcher $dispatcher)
     {

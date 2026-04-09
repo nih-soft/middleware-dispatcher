@@ -134,7 +134,7 @@ Middleware class strings remain lazy in both phases and are resolved only when e
 
 | Question          | Before `handle()`                                               | During `handle()`                                                                |
 |-------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------------|
-| Main object       | `MiddlewareDispatcher`                                          | `DispatchControl`                                                                |
+| Main object       | `MiddlewareDispatcher`                                          | `DispatchRuntime`                                                                |
 | Typical place     | bootstrap, constructor setup, module configuration              | currently running middleware                                                     |
 | What can change   | configured middleware list and configured final handler         | only the remaining tail for the current request and that request's final handler |
 | Scope             | affects subsequent requests handled by that dispatcher instance | affects only the current request                                                 |
@@ -149,7 +149,7 @@ new MiddlewareDispatcher(
     ContainerInterface $container,
     array $middlewares,
     RequestHandlerInterface|string $finalHandler = '',
-    string $attributeName = DispatchControl::class,
+    string $attributeName = DispatchRuntime::class,
 )
 ```
 
@@ -166,11 +166,11 @@ Before `handle()` starts, `MiddlewareDispatcher` acts as the configuration objec
 - `append(..., $after)` inserts after the last matching middleware in the configured pipeline. If no match is found, it appends to the end of the configured pipeline.
 - `prepend(..., $before)` inserts before the first matching middleware in the configured pipeline. If no match is found, it prepends to the start of the configured pipeline.
 - `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It may be provided either as a direct handler instance or as a class string resolved lazily through the configured container. The constructor may also omit it temporarily by leaving the default empty string and setting it later before `handle()`. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
-- The optional `$attributeName` constructor argument controls how dispatch-time `DispatchControl` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
+- The optional `$attributeName` constructor argument controls how dispatch-time `DispatchRuntime` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
 
 ## Dispatch-Time Control
 
-During `handle()`, the dispatcher may expose a per-request `DispatchControl` object through request attributes. Its API intentionally mirrors the pre-dispatch configuration phase: the same `append()`, `prepend()`, `remove()`, and `setFinalHandler()` methods are available after the pipeline has started, plus the dispatch-time-specific `bypassOuter()`. That keeps dynamic dispatch behavior predictable and reduces cognitive overhead for developers.
+During `handle()`, the dispatcher may expose a per-request `DispatchRuntime` object through request attributes. Its API intentionally mirrors the pre-dispatch configuration phase: the same `append()`, `prepend()`, `remove()`, and `setFinalHandler()` methods are available after the pipeline has started, plus the dispatch-time-specific `bypassOuter()`. That keeps dynamic dispatch behavior predictable and reduces cognitive overhead for developers.
 
 At dispatch time, `setFinalHandler()` has the same conceptual role, but it affects only the current request. Middleware may use it to replace the currently configured final handler for that request, either with a direct handler instance or with a lazily resolved class string.
 

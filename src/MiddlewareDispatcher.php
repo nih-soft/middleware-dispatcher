@@ -18,10 +18,10 @@ use Throwable;
  * Configures and executes a PSR-15 middleware pipeline.
  *
  * Before {@see handle()}, mutation methods change the configured pipeline for
- * subsequent requests. During {@see handle()}, a per-request {@see DispatchControl}
+ * subsequent requests. During {@see handle()}, a per-request {@see DispatchRuntime}
  * may be exposed through the request attribute configured by `$attributeName`.
  */
-final class MiddlewareDispatcher extends DispatcherData implements RequestHandlerInterface
+final class MiddlewareDispatcher extends DispatchConfig implements RequestHandlerInterface
 {
     private bool $isDispatching = false;
 
@@ -33,7 +33,7 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
         private readonly ContainerInterface $container,
         array $middlewares,
         RequestHandlerInterface|string $finalHandler = '',
-        private readonly string $attributeName = DispatchControl::class,
+        private readonly string $attributeName = DispatchRuntime::class,
     ) {
         $this->middlewares = $middlewares;
         $this->finalHandler = $finalHandler;
@@ -43,7 +43,7 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
      * Executes the configured middleware pipeline for the given request.
      *
      * If `$attributeName` is not empty and the request does not already contain
-     * that attribute, the dispatcher stores a {@see DispatchControl} instance there
+     * that attribute, the dispatcher stores a {@see DispatchRuntime} instance there
      * for the duration of the current request.
      *
      * @throws RuntimeException If the same dispatcher instance is entered reentrantly
@@ -58,7 +58,7 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
         }
 
         $this->isDispatching = true;
-        $control = DispatchControl::newInstance($this);
+        $control = DispatchRuntime::newInstance($this);
 
         try {
             $stack = [];

@@ -7,11 +7,11 @@ For installation, base pipeline configuration, and bootstrap examples, see [READ
 ## Contents
 
 - [Mental Model](#mental-model)
-- [How `DispatchControl` Gets Into The Request](#how-dispatchcontrol-gets-into-the-request)
+- [How `DispatchRuntime` Gets Into The Request](#how-dispatchruntime-gets-into-the-request)
 - [Dispatch-Time Control Example](#dispatch-time-control-example)
 - [Dispatch-Time Mutation Semantics](#dispatch-time-mutation-semantics)
 - [Addressing Rules](#addressing-rules)
-- [`DispatchControl` API](#dispatchcontrol-api)
+- [`DispatchRuntime` API](#dispatchruntime-api)
 - [`bypassOuter()` vs Short-Circuit](#bypassouter-vs-short-circuit)
 - [Behavioral Notes](#behavioral-notes)
 - [Common Pitfalls](#common-pitfalls)
@@ -19,10 +19,10 @@ For installation, base pipeline configuration, and bootstrap examples, see [READ
 ## Mental Model
 
 - before `handle()`, `MiddlewareDispatcher` is the configuration object for the pipeline;
-- during `handle()`, `DispatchControl` is the per-request dispatch-time control object;
+- during `handle()`, `DispatchRuntime` is the per-request dispatch-time control object;
 - both expose similar mutation methods, but they operate on different state.
 
-## How `DispatchControl` Gets Into The Request
+## How `DispatchRuntime` Gets Into The Request
 
 During `handle()`, the dispatcher creates a dispatch-time control object and may store it in the request attributes.
 
@@ -31,32 +31,32 @@ new MiddlewareDispatcher(
     ContainerInterface $container,
     array $middlewares,
     RequestHandlerInterface|string $finalHandler = '',
-    string $attributeName = DispatchControl::class,
+    string $attributeName = DispatchRuntime::class,
 )
 ```
 
-- by default, the control object is written to the request attribute named `DispatchControl::class`;
+- by default, the control object is written to the request attribute named `DispatchRuntime::class`;
 - if you pass a custom `$attributeName`, the control object is written there instead;
 - if `$attributeName` is an empty string, the control object is not written to the request;
 - if the request already contains that attribute, the dispatcher leaves it untouched.
 
-If middleware expects `$request->getAttribute(DispatchControl::class)`, that only works when the default attribute name is used and not already occupied by something else.
+If middleware expects `$request->getAttribute(DispatchRuntime::class)`, that only works when the default attribute name is used and not already occupied by something else.
 
 For the simplest setup:
 
-- keep the default attribute name `DispatchControl::class`;
-- read the control object via `$request->getAttribute(DispatchControl::class)`.
+- keep the default attribute name `DispatchRuntime::class`;
+- read the control object via `$request->getAttribute(DispatchRuntime::class)`.
 
 If you use custom attribute names or nested dispatchers, treat that as an application-level contract and document which control object middleware is expected to read. For parent/child coordination, see [nested-dispatchers.md](nested-dispatchers.md).
 
 ## Dispatch-Time Control Example
 
-This example assumes the default request attribute name `DispatchControl::class`.
+This example assumes the default request attribute name `DispatchRuntime::class`.
 
 ```php
 <?php
 
-use NIH\MiddlewareDispatcher\DispatchControl;
+use NIH\MiddlewareDispatcher\DispatchRuntime;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -68,9 +68,9 @@ final class RuntimeMutationMiddleware implements MiddlewareInterface
         ServerRequestInterface $request,
         RequestHandlerInterface $handler,
     ): ResponseInterface {
-        $control = $request->getAttribute(DispatchControl::class);
+        $control = $request->getAttribute(DispatchRuntime::class);
 
-        if (!$control instanceof DispatchControl) {
+        if (!$control instanceof DispatchRuntime) {
             throw new \LogicException('Dispatch control attribute is missing.');
         }
 
@@ -100,7 +100,7 @@ When you call mutation methods on `MiddlewareDispatcher` before starting the pip
 
 ### During `handle()`
 
-When you call the same methods on `DispatchControl` from middleware:
+When you call the same methods on `DispatchRuntime` from middleware:
 
 - they mutate only the current request's dispatch-time middleware tail;
 - they never mutate middleware that has already executed;
@@ -146,7 +146,7 @@ If no matching anchor is found:
 
 When a middleware entry is an object instance, its class is matched via `$middleware::class`.
 
-## `DispatchControl` API
+## `DispatchRuntime` API
 
 Available methods:
 
@@ -220,7 +220,7 @@ The important point is that `bypassOuter()` marks the unwind boundary. It does n
 
 ## Common Pitfalls
 
-- reading `DispatchControl` from the wrong request attribute name;
+- reading `DispatchRuntime` from the wrong request attribute name;
 - expecting dispatch-time mutation to change the next request;
 - expecting `bypassOuter()` to stop execution immediately;
 - expecting middleware added from the final handler to still run for the current request;

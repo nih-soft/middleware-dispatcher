@@ -35,17 +35,25 @@ That is explicit coordination through the request, not shared dispatcher state.
 ```php
 <?php
 
-$parentDispatcher = new MiddlewareDispatcher(
-    $container,
+$parentConfig = new DispatchConfig(
     $parentMiddlewares,
     $parentFinalHandler,
+);
+
+$parentDispatcher = new MiddlewareDispatcher(
+    $container,
+    $parentConfig,
     'parentDispatchControl',
+);
+
+$childConfig = new DispatchConfig(
+    $childMiddlewares,
+    $childFinalHandler,
 );
 
 $childDispatcher = new MiddlewareDispatcher(
     $container,
-    $childMiddlewares,
-    $childFinalHandler,
+    $childConfig,
     'childDispatchControl',
 );
 ```

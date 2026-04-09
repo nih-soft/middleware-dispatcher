@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace NIH\MiddlewareDispatcher;
 
+use Closure;
 use Fiber;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -15,28 +16,23 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Configures and executes a PSR-15 middleware pipeline.
+ * Executes a PSR-15 middleware pipeline from a prepared {@see DispatchConfig}.
  *
- * Before {@see handle()}, mutation methods change the configured pipeline for
- * subsequent requests. During {@see handle()}, a per-request {@see DispatchRuntime}
- * may be exposed through the request attribute configured by `$attributeName`.
+ * During {@see handle()}, a per-request {@see DispatchRuntime} may be exposed
+ * through the request attribute configured by `$attributeName`.
  */
-final class MiddlewareDispatcher extends DispatchConfig implements RequestHandlerInterface
+final class MiddlewareDispatcher implements RequestHandlerInterface
 {
     private bool $isDispatching = false;
 
-    /**
-     * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middlewares
-     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
-     */
+    private readonly DispatchConfig $config;
+
     public function __construct(
         private readonly ContainerInterface $container,
-        array $middlewares,
-        RequestHandlerInterface|string $finalHandler = '',
+        DispatchConfig $config,
         private readonly string $attributeName = DispatchRuntime::class,
     ) {
-        $this->middlewares = $middlewares;
-        $this->finalHandler = $finalHandler;
+        $this->config = $config;
     }
 
     /**
@@ -49,7 +45,6 @@ final class MiddlewareDispatcher extends DispatchConfig implements RequestHandle
      * @throws RuntimeException If the same dispatcher instance is entered reentrantly
      *                          or if middleware breaks the dispatcher contract.
      * @throws Throwable
-     * @noinspection PhpInconsistentReturnPointsInspection
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -58,17 +53,25 @@ final class MiddlewareDispatcher extends DispatchConfig implements RequestHandle
         }
 
         $this->isDispatching = true;
-        $control = DispatchRuntime::newInstance($this);
 
-        try {
+        /** @var Closure(DispatchConfig, ServerRequestInterface, string, callable(MiddlewareInterface|string): MiddlewareInterface, callable(RequestHandlerInterface|string): RequestHandlerInterface): ResponseInterface $dispatch */
+        $dispatch = Closure::bind(static function (
+            DispatchConfig $config,
+            ServerRequestInterface $request,
+            string $attributeName,
+            Closure $resolveMiddleware,
+            Closure $resolveFinalHandler,
+        ): ResponseInterface {
+            $control = DispatchRuntime::newInstance($config);
+
             $stack = [];
             $currentRequest = $request;
 
-            if ($this->attributeName !== '' && !array_key_exists($this->attributeName, $request->getAttributes())) {
+            if ($attributeName !== '' && !array_key_exists($attributeName, $request->getAttributes())) {
                 // Expose the runtime control only when the caller did not
                 // pre-populate the attribute with another control object.
                 $currentRequest = $request->withAttribute(
-                    $this->attributeName,
+                    $attributeName,
                     $control,
                 );
             }
@@ -81,7 +84,7 @@ final class MiddlewareDispatcher extends DispatchConfig implements RequestHandle
                 while ($response === null && $throwable === null) {
                     if ($nextIndex >= count($control->middlewares)) {
                         try {
-                            $response = $this->resolveFinalHandler($control->finalHandler)->handle($currentRequest);
+                            $response = $resolveFinalHandler($control->finalHandler)->handle($currentRequest);
                         } catch (Throwable $caught) {
                             $throwable = $caught;
                         }
@@ -91,7 +94,7 @@ final class MiddlewareDispatcher extends DispatchConfig implements RequestHandle
 
                     $index = $nextIndex;
                     $middleware = $control->middlewares[$index];
-                    $currentMiddleware = $this->resolveMiddleware($middleware);
+                    $currentMiddleware = $resolveMiddleware($middleware);
                     $fiber = new Fiber(static function (ServerRequestInterface $request) use ($currentMiddleware): ResponseInterface {
                         $next = new class implements RequestHandlerInterface {
                             public function handle(ServerRequestInterface $request): ResponseInterface
@@ -214,6 +217,16 @@ final class MiddlewareDispatcher extends DispatchConfig implements RequestHandle
 
                 return $response;
             }
+        }, null, DispatchConfig::class);
+
+        try {
+            return $dispatch(
+                $this->config,
+                $request,
+                $this->attributeName,
+                $this->resolveMiddleware(...),
+                $this->resolveFinalHandler(...),
+            );
         } finally {
             $this->isDispatching = false;
         }

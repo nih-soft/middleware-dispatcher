@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace NIH\MiddlewareDispatcher\Tests\Unit;
 
+use NIH\MiddlewareDispatcher\DispatchConfig;
 use NIH\MiddlewareDispatcher\DispatchRuntime;
 use NIH\MiddlewareDispatcher\MiddlewareDispatcher;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Controllers\Dispatch\DispatchTrace;
@@ -12,6 +13,7 @@ use NIH\MiddlewareDispatcher\Tests\Fixtures\Http\FakeResponseFactory;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Http\FakeServerRequest;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Middleware\RecordRouteMiddleware;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -126,15 +128,15 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
+        $config = $this->createConfig(
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'base'),
             ],
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $dispatcher->append(new RecordRouteMiddleware($responseFactory, $trace, 'appended'));
+        $config->append(new RecordRouteMiddleware($responseFactory, $trace, 'appended'));
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
 
         $response = $dispatcher->handle(new FakeServerRequest('/append-before-start', 'GET'));
 
@@ -152,15 +154,15 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
+        $config = $this->createConfig(
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'base'),
             ],
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $dispatcher->prepend(new RecordRouteMiddleware($responseFactory, $trace, 'prepended'));
+        $config->prepend(new RecordRouteMiddleware($responseFactory, $trace, 'prepended'));
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
 
         $response = $dispatcher->handle(new FakeServerRequest('/prepend-before-start', 'GET'));
 
@@ -178,18 +180,18 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
+        $config = $this->createConfig(
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'base'),
             ],
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $dispatcher->append([
+        $config->append([
             new RecordRouteMiddleware($responseFactory, $trace, 'first'),
             new RecordRouteMiddleware($responseFactory, $trace, 'second'),
         ]);
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
 
         $response = $dispatcher->handle(new FakeServerRequest('/append-chain-before-start', 'GET'));
 
@@ -232,7 +234,7 @@ final class MiddlewareDispatcherTest extends TestCase
             }
         };
 
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($trace, $responseFactory, $anchorMiddleware::class) implements MiddlewareInterface {
@@ -310,7 +312,7 @@ final class MiddlewareDispatcherTest extends TestCase
             }
         };
 
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($trace, $responseFactory, $anchorMiddleware::class) implements MiddlewareInterface {
@@ -386,7 +388,7 @@ final class MiddlewareDispatcherTest extends TestCase
             }
         };
 
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($trace, $responseFactory, $anchorMiddleware::class) implements MiddlewareInterface {
@@ -439,7 +441,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($trace, $responseFactory) implements MiddlewareInterface {
@@ -482,7 +484,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($trace, $responseFactory) implements MiddlewareInterface {
@@ -525,8 +527,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
+        $config = $this->createConfig(
             [
                 new MutableRouteMiddleware($responseFactory, $trace, 'removed-first'),
                 new RecordRouteMiddleware($responseFactory, $trace, 'middle'),
@@ -535,7 +536,8 @@ final class MiddlewareDispatcherTest extends TestCase
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $removed = $dispatcher->remove(MutableRouteMiddleware::class);
+        $removed = $config->remove(MutableRouteMiddleware::class);
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
         $response = $dispatcher->handle(new FakeServerRequest('/remove-before-start', 'GET'));
 
         self::assertSame(2, $removed);
@@ -552,7 +554,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
         $removed = null;
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new MutableRouteMiddleware($responseFactory, $trace, 'before'),
@@ -602,13 +604,13 @@ final class MiddlewareDispatcherTest extends TestCase
     public function test_it_can_set_final_handler_before_pipeline_start(): void
     {
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
+        $config = $this->createConfig(
             [],
             $this->createTaggedFinalHandler($responseFactory, 'base'),
         );
 
-        $dispatcher->setFinalHandler($this->createTaggedFinalHandler($responseFactory, 'replaced'));
+        $config->setFinalHandler($this->createTaggedFinalHandler($responseFactory, 'replaced'));
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
 
         $firstResponse = $dispatcher->handle(new FakeServerRequest('/set-final-before-start-first', 'GET'));
         $secondResponse = $dispatcher->handle(new FakeServerRequest('/set-final-before-start-second', 'GET'));
@@ -617,16 +619,14 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('replaced', $secondResponse->getHeaderLine('X-Final-Handler'));
     }
 
-    public function test_it_can_be_constructed_without_final_handler_until_it_is_set_before_handle(): void
+    public function test_it_can_set_final_handler_on_original_config_after_dispatcher_creation(): void
     {
         AutoResolvedReplacementFinalHandler::$constructed = 0;
 
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
-            [],
-        );
+        $config = new DispatchConfig();
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
 
-        $dispatcher->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+        $config->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
 
         self::assertSame(0, AutoResolvedReplacementFinalHandler::$constructed);
 
@@ -636,14 +636,16 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('replacement', $response->getHeaderLine('X-Final-Handler'));
     }
 
-    public function test_it_can_use_a_lazy_class_string_final_handler_from_constructor(): void
+    public function test_it_can_use_a_lazy_class_string_final_handler_from_dispatch_config(): void
     {
         AutoResolvedConfiguredFinalHandler::$constructed = 0;
 
         $dispatcher = new MiddlewareDispatcher(
             new TestContainer(),
-            [],
-            AutoResolvedConfiguredFinalHandler::class,
+            $this->createConfig(
+                [],
+                AutoResolvedConfiguredFinalHandler::class,
+            ),
         );
 
         self::assertSame(0, AutoResolvedConfiguredFinalHandler::$constructed);
@@ -654,18 +656,18 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('configured', $response->getHeaderLine('X-Final-Handler'));
     }
 
-    public function test_it_can_set_a_lazy_class_string_final_handler_before_pipeline_start(): void
+    public function test_it_can_set_a_lazy_class_string_final_handler_on_config_before_handle(): void
     {
         AutoResolvedReplacementFinalHandler::$constructed = 0;
 
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
+        $config = $this->createConfig(
             [],
             $this->createTaggedFinalHandler($responseFactory, 'base'),
         );
 
-        $dispatcher->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+        $config->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
 
         self::assertSame(0, AutoResolvedReplacementFinalHandler::$constructed);
 
@@ -677,10 +679,7 @@ final class MiddlewareDispatcherTest extends TestCase
 
     public function test_it_throws_when_final_handler_is_not_configured(): void
     {
-        $dispatcher = new MiddlewareDispatcher(
-            new TestContainer(),
-            [],
-        );
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), new DispatchConfig());
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Final handler class-string must be non-empty.');
@@ -691,7 +690,7 @@ final class MiddlewareDispatcherTest extends TestCase
     public function test_it_can_set_final_handler_for_current_request_only_during_execution(): void
     {
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($responseFactory) implements MiddlewareInterface {
@@ -749,7 +748,7 @@ final class MiddlewareDispatcherTest extends TestCase
         AutoResolvedRuntimeFinalHandler::$constructed = 0;
 
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class implements MiddlewareInterface {
@@ -797,7 +796,7 @@ final class MiddlewareDispatcherTest extends TestCase
 
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class implements MiddlewareInterface {
@@ -840,7 +839,7 @@ final class MiddlewareDispatcherTest extends TestCase
 
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class implements MiddlewareInterface {
@@ -880,7 +879,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'outer'),
@@ -932,7 +931,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'outer'),
@@ -988,7 +987,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($trace) implements MiddlewareInterface {
@@ -1074,7 +1073,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'outer'),
@@ -1123,7 +1122,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'outer'),
@@ -1182,7 +1181,7 @@ final class MiddlewareDispatcherTest extends TestCase
     public function test_it_throws_when_bypass_outer_is_called_outside_middleware_fiber(): void
     {
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [],
             new class($responseFactory) implements RequestHandlerInterface {
@@ -1215,7 +1214,7 @@ final class MiddlewareDispatcherTest extends TestCase
     public function test_it_throws_when_bypass_outer_is_called_from_nested_user_fiber(): void
     {
         $responseFactory = new FakeResponseFactory();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class implements MiddlewareInterface {
@@ -1261,7 +1260,7 @@ final class MiddlewareDispatcherTest extends TestCase
     public function test_it_throws_on_reentrant_handle_of_the_same_instance(): void
     {
         $dispatcher = null;
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [
                 new class($dispatcher) implements MiddlewareInterface {
@@ -1302,7 +1301,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $responseFactory = new FakeResponseFactory();
         $trace = new DispatchTrace();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             new TestContainer(),
             [],
             new class($responseFactory, $trace) implements RequestHandlerInterface {
@@ -1341,7 +1340,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $responseFactory = new FakeResponseFactory();
         $container = new TestContainer();
         $capturedRequest = null;
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [],
             new class($responseFactory, $capturedRequest) implements RequestHandlerInterface {
@@ -1376,7 +1375,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $container = new TestContainer();
         $capturedRequest = null;
         $attributeName = 'currentDispatcher';
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [],
             new class($responseFactory, $capturedRequest) implements RequestHandlerInterface {
@@ -1413,7 +1412,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $container = new TestContainer();
         $capturedRequest = null;
         $existingDispatcher = new \stdClass();
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [],
             new class($responseFactory, $capturedRequest) implements RequestHandlerInterface {
@@ -1450,7 +1449,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $responseFactory = new FakeResponseFactory();
         $container = new TestContainer();
         $capturedRequest = null;
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [],
             new class($responseFactory, $capturedRequest) implements RequestHandlerInterface {
@@ -1485,7 +1484,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $container = new TestContainer([
             InvalidResolvedLazyMiddleware::class => new InvalidResolvedLazyMiddleware(),
         ]);
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [InvalidResolvedLazyMiddleware::class],
             new class implements RequestHandlerInterface {
@@ -1508,7 +1507,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $container = new TestContainer([
             InvalidResolvedLazyMiddleware::class => new InvalidResolvedLazyMiddleware(),
         ]);
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [
                 new class($responseFactory) implements MiddlewareInterface {
@@ -1582,7 +1581,7 @@ final class MiddlewareDispatcherTest extends TestCase
             $resolvedClass => $resolvedMiddleware,
         ]);
 
-        $dispatcher = new MiddlewareDispatcher(
+        $dispatcher = $this->createDispatcher(
             $container,
             [
                 new class($trace) implements MiddlewareInterface {
@@ -1682,5 +1681,33 @@ final class MiddlewareDispatcherTest extends TestCase
                     ->withHeader('X-Final-Handler', $this->name);
             }
         };
+    }
+
+    /**
+     * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middlewares
+     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
+     */
+    private function createConfig(
+        array $middlewares = [],
+        RequestHandlerInterface|string $finalHandler = '',
+    ): DispatchConfig {
+        return new DispatchConfig($middlewares, $finalHandler);
+    }
+
+    /**
+     * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middlewares
+     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
+     */
+    private function createDispatcher(
+        ContainerInterface $container,
+        array $middlewares = [],
+        RequestHandlerInterface|string $finalHandler = '',
+        string $attributeName = DispatchRuntime::class,
+    ): MiddlewareDispatcher {
+        return new MiddlewareDispatcher(
+            $container,
+            $this->createConfig($middlewares, $finalHandler),
+            $attributeName,
+        );
     }
 }

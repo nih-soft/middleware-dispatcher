@@ -15,10 +15,9 @@ use RuntimeException;
  */
 final class DispatchRuntime extends DispatchConfig
 {
-    protected function __construct(MiddlewareDispatcher $dispatcher)
+    protected function __construct(DispatchConfig $config)
     {
-        $this->middlewares = $dispatcher->middlewares;
-        $this->finalHandler = $dispatcher->finalHandler;
+        parent::__construct($config->middlewares, $config->finalHandler);
     }
 
     /**

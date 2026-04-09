@@ -18,7 +18,7 @@ For installation, base pipeline configuration, and bootstrap examples, see [READ
 
 ## Mental Model
 
-- before `handle()`, `MiddlewareDispatcher` is the configuration object for the pipeline;
+- before `handle()`, `DispatchConfig` is the configuration object for the pipeline;
 - during `handle()`, `DispatchRuntime` is the per-request dispatch-time control object;
 - both expose similar mutation methods, but they operate on different state.
 
@@ -29,8 +29,7 @@ During `handle()`, the dispatcher creates a dispatch-time control object and may
 ```php
 new MiddlewareDispatcher(
     ContainerInterface $container,
-    array $middlewares,
-    RequestHandlerInterface|string $finalHandler = '',
+    DispatchConfig $config,
     string $attributeName = DispatchRuntime::class,
 )
 ```
@@ -92,11 +91,11 @@ final class RuntimeMutationMiddleware implements MiddlewareInterface
 
 ### Before `handle()`
 
-When you call mutation methods on `MiddlewareDispatcher` before starting the pipeline:
+When you call mutation methods on `DispatchConfig` before `handle()` starts:
 
 - `append()`, `prepend()`, and `remove()` change the configured middleware list;
 - `setFinalHandler()` changes the configured final handler and accepts either a direct handler instance or a class string resolved lazily;
-- the changes affect subsequent requests handled by that dispatcher instance.
+- the changes affect any dispatcher that uses that config object.
 
 ### During `handle()`
 

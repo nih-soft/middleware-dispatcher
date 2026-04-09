@@ -11,10 +11,10 @@ use Psr\Http\Server\RequestHandlerInterface;
 /**
  * Shared mutation API for dispatcher configuration and per-request runtime control.
  *
- * The same methods are available before dispatch on {@see MiddlewareDispatcher}
+ * The same methods are available before dispatch on {@see DispatchConfig}
  * and during dispatch on {@see DispatchRuntime}, but they affect different state.
  */
-abstract class DispatchConfig
+class DispatchConfig
 {
     /**
      * @var list<MiddlewareInterface|class-string<MiddlewareInterface>>
@@ -40,6 +40,18 @@ abstract class DispatchConfig
      * to call bypassOuter().
      */
     protected ?Fiber $activeMiddlewareFiber = null;
+
+    /**
+     * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middlewares
+     * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
+     */
+    public function __construct(
+        array $middlewares = [],
+        RequestHandlerInterface|string $finalHandler = '',
+    ) {
+        $this->middlewares = $middlewares;
+        $this->finalHandler = $finalHandler;
+    }
 
     protected static function newInstance(mixed ...$args): static
     {

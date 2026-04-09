@@ -60,10 +60,10 @@ Even a small application often has several middleware layers.
 ```php
 <?php
 
+use NIH\MiddlewareDispatcher\DispatchConfig;
 use NIH\MiddlewareDispatcher\MiddlewareDispatcher;
 
-$dispatcher = new MiddlewareDispatcher(
-    $container,
+$config = new DispatchConfig(
     [
         App\Http\Middleware\ErrorHandlerMiddleware::class,
         App\Http\Middleware\RequestIdMiddleware::class,
@@ -73,7 +73,12 @@ $dispatcher = new MiddlewareDispatcher(
         new App\Http\Middleware\AuditMiddleware(),
         App\Http\Middleware\LocaleMiddleware::class,
     ],
-    new App\Http\Handler\NotFoundHandler(),
+    App\Http\Handler\NotFoundHandler::class,
+);
+
+$dispatcher = new MiddlewareDispatcher(
+    $container,
+    $config,
 );
 
 $response = $dispatcher->handle($request);
@@ -92,17 +97,30 @@ For larger applications, see [Configuration Before `handle()`](#configuration-be
 
 A larger application often uses two setup steps before the first request is handled:
 
-- constructor phase: create the base pipeline and default final handler;
-- pre-dispatch configuration phase: continue adjusting the same dispatcher before `handle()` starts.
+- configuration phase: create the base pipeline and default final handler on `DispatchConfig`;
+- dispatch phase: create `MiddlewareDispatcher` from that config and call `handle()`.
 
-That second step may happen in bootstrap code, another class, or a different module.
-The same applies to the final handler: the constructor may provide the default final handler first, and later configuration may replace it through `setFinalHandler()`.
+The configuration phase may happen in bootstrap code, another class, or a different module.
+The same applies to the final handler: the config constructor may provide the default final handler first, and later configuration may replace it through `setFinalHandler()`.
 
 ```php
 <?php
 
+use NIH\MiddlewareDispatcher\DispatchConfig;
+use NIH\MiddlewareDispatcher\MiddlewareDispatcher;
+
+$config = new DispatchConfig(
+    [
+        App\Http\Middleware\ErrorHandlerMiddleware::class,
+        App\Http\Middleware\RequestIdMiddleware::class,
+        App\Http\Middleware\RoutingMiddleware::class,
+        App\Http\Middleware\Authenticate::class,
+    ],
+    App\Http\Handler\NotFoundHandler::class,
+);
+
 // This may be called from a different file, class, or module during bootstrap.
-$dispatcher->append(
+$config->append(
     [
         App\Admin\Http\Middleware\LoadAdminContext::class,
         App\Admin\Http\Middleware\RequireAdminRole::class,
@@ -111,7 +129,7 @@ $dispatcher->append(
 );
 
 // This may also be called from another file, class, or module before handle().
-$dispatcher->prepend(
+$config->prepend(
     [
         App\Tenant\Http\Middleware\DetectTenantFromHost::class,
         App\Tenant\Http\Middleware\SwitchTenantConnection::class,
@@ -120,10 +138,12 @@ $dispatcher->prepend(
 );
 
 // A feature flag or environment-specific bootstrap may remove middleware configured earlier.
-$dispatcher->remove(App\Http\Middleware\DebugToolbarMiddleware::class);
+$config->remove(App\Http\Middleware\DebugToolbarMiddleware::class);
 
 // The final handler is configured separately because it is not middleware.
-$dispatcher->setFinalHandler(App\Admin\Http\Handler\AdminFallbackHandler::class);
+$config->setFinalHandler(App\Admin\Http\Handler\AdminFallbackHandler::class);
+
+$dispatcher = new MiddlewareDispatcher($container, $config);
 
 $response = $dispatcher->handle($request);
 ```
@@ -134,21 +154,42 @@ Middleware class strings remain lazy in both phases and are resolved only when e
 
 | Question          | Before `handle()`                                               | During `handle()`                                                                |
 |-------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------------|
-| Main object       | `MiddlewareDispatcher`                                          | `DispatchRuntime`                                                                |
+| Main object       | `DispatchConfig`                                                | `DispatchRuntime`                                                                |
 | Typical place     | bootstrap, constructor setup, module configuration              | currently running middleware                                                     |
 | What can change   | configured middleware list and configured final handler         | only the remaining tail for the current request and that request's final handler |
-| Scope             | affects subsequent requests handled by that dispatcher instance | affects only the current request                                                 |
-| How you access it | direct variable/reference to the dispatcher                     | request attribute, if the dispatcher is configured to expose it                  |
+| Scope             | affects any dispatcher using that config object                 | affects only the current request                                                 |
+| How you access it | direct variable/reference to the config                         | request attribute, if the dispatcher is configured to expose it                  |
 
 ## Configuration API
+
+### `DispatchConfig`
+
+```php
+new DispatchConfig(
+    array $middlewares = [],
+    RequestHandlerInterface|string $finalHandler = '',
+)
+```
+
+Available methods:
+
+- `append(MiddlewareInterface|string|array $middleware, string $after = ''): void`
+- `prepend(MiddlewareInterface|string|array $middleware, string $before = ''): void`
+- `remove(string $middlewareClass): int`
+- `setFinalHandler(RequestHandlerInterface|string $handler): void`
+
+Before `handle()` starts, `DispatchConfig` acts as the configuration object for the pipeline.
+
+- `append(..., $after)` inserts after the last matching middleware in the configured pipeline. If no match is found, it appends to the end of the configured pipeline.
+- `prepend(..., $before)` inserts before the first matching middleware in the configured pipeline. If no match is found, it prepends to the start of the configured pipeline.
+- `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It may be provided either as a direct handler instance or as a class string resolved lazily through the configured container. The constructor may also omit it temporarily by leaving the default empty string and setting it later before `handle()` starts. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
 
 ### `MiddlewareDispatcher`
 
 ```php
 new MiddlewareDispatcher(
     ContainerInterface $container,
-    array $middlewares,
-    RequestHandlerInterface|string $finalHandler = '',
+    DispatchConfig $config,
     string $attributeName = DispatchRuntime::class,
 )
 ```
@@ -156,17 +197,8 @@ new MiddlewareDispatcher(
 Available methods:
 
 - `handle(ServerRequestInterface $request): ResponseInterface`
-- `append(MiddlewareInterface|string|array $middleware, string $after = ''): void`
-- `prepend(MiddlewareInterface|string|array $middleware, string $before = ''): void`
-- `remove(string $middlewareClass): int`
-- `setFinalHandler(RequestHandlerInterface|string $handler): void`
 
-Before `handle()` starts, `MiddlewareDispatcher` acts as the configuration object for the pipeline.
-
-- `append(..., $after)` inserts after the last matching middleware in the configured pipeline. If no match is found, it appends to the end of the configured pipeline.
-- `prepend(..., $before)` inserts before the first matching middleware in the configured pipeline. If no match is found, it prepends to the start of the configured pipeline.
-- `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It may be provided either as a direct handler instance or as a class string resolved lazily through the configured container. The constructor may also omit it temporarily by leaving the default empty string and setting it later before `handle()`. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
-- The optional `$attributeName` constructor argument controls how dispatch-time `DispatchRuntime` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
+`MiddlewareDispatcher` executes a previously prepared `DispatchConfig`. It uses the original config object passed to the constructor, so later mutations of that config object affect subsequent `handle()` calls on that dispatcher. The optional `$attributeName` constructor argument controls how dispatch-time `DispatchRuntime` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
 
 ## Dispatch-Time Control
 

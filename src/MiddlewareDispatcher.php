@@ -16,30 +16,30 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Executes a PSR-15 middleware pipeline from a prepared {@see DispatchConfig}.
+ * Executes a PSR-15 middleware pipeline from a prepared {@see Pipeline}.
  *
- * During {@see handle()}, a per-request {@see DispatchRuntime} may be exposed
+ * During {@see handle()}, a per-request {@see PipelineControl} may be exposed
  * through the request attribute configured by `$attributeName`.
  */
 final class MiddlewareDispatcher implements RequestHandlerInterface
 {
     private bool $isDispatching = false;
 
-    private readonly DispatchConfig $config;
+    private readonly Pipeline $pipeline;
 
     public function __construct(
         private readonly ContainerInterface $container,
-        DispatchConfig $config,
-        private readonly string $attributeName = DispatchRuntime::class,
+        Pipeline $pipeline,
+        private readonly string $attributeName = PipelineControl::class,
     ) {
-        $this->config = $config;
+        $this->pipeline = $pipeline;
     }
 
     /**
      * Executes the configured middleware pipeline for the given request.
      *
      * If `$attributeName` is not empty and the request does not already contain
-     * that attribute, the dispatcher stores a {@see DispatchRuntime} instance there
+     * that attribute, the dispatcher stores a {@see PipelineControl} instance there
      * for the duration of the current request.
      *
      * @throws RuntimeException If the same dispatcher instance is entered reentrantly
@@ -54,15 +54,15 @@ final class MiddlewareDispatcher implements RequestHandlerInterface
 
         $this->isDispatching = true;
 
-        /** @var Closure(DispatchConfig, ServerRequestInterface, string, callable(MiddlewareInterface|string): MiddlewareInterface, callable(RequestHandlerInterface|string): RequestHandlerInterface): ResponseInterface $dispatch */
+        /** @var Closure(Pipeline, ServerRequestInterface, string, callable(MiddlewareInterface|string): MiddlewareInterface, callable(RequestHandlerInterface|string): RequestHandlerInterface): ResponseInterface $dispatch */
         $dispatch = Closure::bind(static function (
-            DispatchConfig $config,
+            Pipeline $pipeline,
             ServerRequestInterface $request,
             string $attributeName,
             Closure $resolveMiddleware,
             Closure $resolveFinalHandler,
         ): ResponseInterface {
-            $control = DispatchRuntime::newInstance($config);
+            $control = PipelineControl::newInstance($pipeline);
 
             $stack = [];
             $currentRequest = $request;
@@ -217,11 +217,11 @@ final class MiddlewareDispatcher implements RequestHandlerInterface
 
                 return $response;
             }
-        }, null, DispatchConfig::class);
+        }, null, Pipeline::class);
 
         try {
             return $dispatch(
-                $this->config,
+                $this->pipeline,
                 $request,
                 $this->attributeName,
                 $this->resolveMiddleware(...),

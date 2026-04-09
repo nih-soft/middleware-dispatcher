@@ -18,14 +18,14 @@ That isolation applies to dispatcher state itself:
 - a parent dispatcher does not automatically share its mutable runtime state with the child;
 - each dispatcher still manages its own configured middleware list, current runtime tail, and current final handler.
 
-## `DispatchRuntime` Through Request Attributes
+## `PipelineControl` Through Request Attributes
 
 Isolation does not prevent intentional coordination through request attributes.
 
 For example:
 
-- a parent dispatcher may expose its `DispatchRuntime` under one attribute name;
-- a child dispatcher may expose its own `DispatchRuntime` under another attribute name;
+- a parent dispatcher may expose its `PipelineControl` under one attribute name;
+- a child dispatcher may expose its own `PipelineControl` under another attribute name;
 - middleware running inside the child dispatcher may still read and use the parent control object from the request.
 
 That is explicit coordination through the request, not shared dispatcher state.
@@ -35,26 +35,26 @@ That is explicit coordination through the request, not shared dispatcher state.
 ```php
 <?php
 
-$parentConfig = new DispatchConfig(
+$parentPipeline = new Pipeline(
     $parentMiddlewares,
     $parentFinalHandler,
 );
 
 $parentDispatcher = new MiddlewareDispatcher(
     $container,
-    $parentConfig,
-    'parentDispatchControl',
+    $parentPipeline,
+    'parentPipelineControl',
 );
 
-$childConfig = new DispatchConfig(
+$childPipeline = new Pipeline(
     $childMiddlewares,
     $childFinalHandler,
 );
 
 $childDispatcher = new MiddlewareDispatcher(
     $container,
-    $childConfig,
-    'childDispatchControl',
+    $childPipeline,
+    'childPipelineControl',
 );
 ```
 
@@ -63,8 +63,8 @@ Inside child middleware:
 ```php
 <?php
 
-$parentControl = $request->getAttribute('parentDispatchControl');
-$childControl = $request->getAttribute('childDispatchControl');
+$parentControl = $request->getAttribute('parentPipelineControl');
+$childControl = $request->getAttribute('childPipelineControl');
 ```
 
 From there, the application may decide which control object is allowed to mutate which part of the flow.

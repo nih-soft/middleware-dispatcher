@@ -9,12 +9,12 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Shared mutation API for dispatcher configuration and per-request runtime control.
+ * Shared mutation API for pipeline configuration and per-request runtime control.
  *
- * The same methods are available before dispatch on {@see DispatchConfig}
- * and during dispatch on {@see DispatchRuntime}, but they affect different state.
+ * The same methods are available before dispatch on {@see Pipeline}
+ * and during dispatch on {@see PipelineControl}, but they affect different state.
  */
-class DispatchConfig
+class Pipeline
 {
     /**
      * @var list<MiddlewareInterface|class-string<MiddlewareInterface>>

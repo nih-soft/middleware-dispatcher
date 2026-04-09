@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace NIH\MiddlewareDispatcher\Tests\Unit;
 
-use NIH\MiddlewareDispatcher\DispatchConfig;
-use NIH\MiddlewareDispatcher\DispatchRuntime;
+use NIH\MiddlewareDispatcher\Pipeline;
+use NIH\MiddlewareDispatcher\PipelineControl;
 use NIH\MiddlewareDispatcher\MiddlewareDispatcher;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Controllers\Dispatch\DispatchTrace;
 use NIH\MiddlewareDispatcher\Tests\Fixtures\Container\TestContainer;
@@ -128,15 +128,15 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $config = $this->createConfig(
+        $pipeline = $this->createPipeline(
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'base'),
             ],
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $config->append(new RecordRouteMiddleware($responseFactory, $trace, 'appended'));
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $pipeline->append(new RecordRouteMiddleware($responseFactory, $trace, 'appended'));
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
 
         $response = $dispatcher->handle(new FakeServerRequest('/append-before-start', 'GET'));
 
@@ -154,15 +154,15 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $config = $this->createConfig(
+        $pipeline = $this->createPipeline(
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'base'),
             ],
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $config->prepend(new RecordRouteMiddleware($responseFactory, $trace, 'prepended'));
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $pipeline->prepend(new RecordRouteMiddleware($responseFactory, $trace, 'prepended'));
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
 
         $response = $dispatcher->handle(new FakeServerRequest('/prepend-before-start', 'GET'));
 
@@ -180,18 +180,18 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $config = $this->createConfig(
+        $pipeline = $this->createPipeline(
             [
                 new RecordRouteMiddleware($responseFactory, $trace, 'base'),
             ],
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $config->append([
+        $pipeline->append([
             new RecordRouteMiddleware($responseFactory, $trace, 'first'),
             new RecordRouteMiddleware($responseFactory, $trace, 'second'),
         ]);
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
 
         $response = $dispatcher->handle(new FakeServerRequest('/append-chain-before-start', 'GET'));
 
@@ -249,10 +249,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->prepend([
@@ -327,10 +327,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->append(
@@ -403,10 +403,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->prepend(
@@ -456,10 +456,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $response = $handler->handle($request);
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->append(new RecordRouteMiddleware($this->responseFactory, $this->trace, 'late'));
@@ -499,10 +499,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $response = $handler->handle($request);
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->prepend(new RecordRouteMiddleware($this->responseFactory, $this->trace, 'late'));
@@ -527,7 +527,7 @@ final class MiddlewareDispatcherTest extends TestCase
     {
         $trace = new DispatchTrace();
         $responseFactory = new FakeResponseFactory();
-        $config = $this->createConfig(
+        $pipeline = $this->createPipeline(
             [
                 new MutableRouteMiddleware($responseFactory, $trace, 'removed-first'),
                 new RecordRouteMiddleware($responseFactory, $trace, 'middle'),
@@ -536,8 +536,8 @@ final class MiddlewareDispatcherTest extends TestCase
             $this->createFinalHandler($trace, $responseFactory),
         );
 
-        $removed = $config->remove(MutableRouteMiddleware::class);
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $removed = $pipeline->remove(MutableRouteMiddleware::class);
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
         $response = $dispatcher->handle(new FakeServerRequest('/remove-before-start', 'GET'));
 
         self::assertSame(2, $removed);
@@ -571,10 +571,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         if ($request->getQueryParams()['mutate'] ?? false) {
-                            $control = $request->getAttribute(DispatchRuntime::class);
+                            $control = $request->getAttribute(PipelineControl::class);
 
-                            if (!$control instanceof DispatchRuntime) {
-                                throw new \LogicException('Dispatch control attribute is missing.');
+                            if (!$control instanceof PipelineControl) {
+                                throw new \LogicException('Pipeline control attribute is missing.');
                             }
 
                             $this->removed = $control->remove(MutableRouteMiddleware::class);
@@ -604,13 +604,13 @@ final class MiddlewareDispatcherTest extends TestCase
     public function test_it_can_set_final_handler_before_pipeline_start(): void
     {
         $responseFactory = new FakeResponseFactory();
-        $config = $this->createConfig(
+        $pipeline = $this->createPipeline(
             [],
             $this->createTaggedFinalHandler($responseFactory, 'base'),
         );
 
-        $config->setFinalHandler($this->createTaggedFinalHandler($responseFactory, 'replaced'));
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $pipeline->setFinalHandler($this->createTaggedFinalHandler($responseFactory, 'replaced'));
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
 
         $firstResponse = $dispatcher->handle(new FakeServerRequest('/set-final-before-start-first', 'GET'));
         $secondResponse = $dispatcher->handle(new FakeServerRequest('/set-final-before-start-second', 'GET'));
@@ -619,14 +619,14 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('replaced', $secondResponse->getHeaderLine('X-Final-Handler'));
     }
 
-    public function test_it_can_set_final_handler_on_original_config_after_dispatcher_creation(): void
+    public function test_it_can_set_final_handler_on_original_pipeline_after_dispatcher_creation(): void
     {
         AutoResolvedReplacementFinalHandler::$constructed = 0;
 
-        $config = new DispatchConfig();
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $pipeline = new Pipeline();
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
 
-        $config->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+        $pipeline->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
 
         self::assertSame(0, AutoResolvedReplacementFinalHandler::$constructed);
 
@@ -636,13 +636,13 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('replacement', $response->getHeaderLine('X-Final-Handler'));
     }
 
-    public function test_it_can_use_a_lazy_class_string_final_handler_from_dispatch_config(): void
+    public function test_it_can_use_a_lazy_class_string_final_handler_from_pipeline(): void
     {
         AutoResolvedConfiguredFinalHandler::$constructed = 0;
 
         $dispatcher = new MiddlewareDispatcher(
             new TestContainer(),
-            $this->createConfig(
+            $this->createPipeline(
                 [],
                 AutoResolvedConfiguredFinalHandler::class,
             ),
@@ -656,18 +656,18 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('configured', $response->getHeaderLine('X-Final-Handler'));
     }
 
-    public function test_it_can_set_a_lazy_class_string_final_handler_on_config_before_handle(): void
+    public function test_it_can_set_a_lazy_class_string_final_handler_on_pipeline_before_handle(): void
     {
         AutoResolvedReplacementFinalHandler::$constructed = 0;
 
         $responseFactory = new FakeResponseFactory();
-        $config = $this->createConfig(
+        $pipeline = $this->createPipeline(
             [],
             $this->createTaggedFinalHandler($responseFactory, 'base'),
         );
 
-        $config->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $config);
+        $pipeline->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), $pipeline);
 
         self::assertSame(0, AutoResolvedReplacementFinalHandler::$constructed);
 
@@ -679,7 +679,7 @@ final class MiddlewareDispatcherTest extends TestCase
 
     public function test_it_throws_when_final_handler_is_not_configured(): void
     {
-        $dispatcher = new MiddlewareDispatcher(new TestContainer(), new DispatchConfig());
+        $dispatcher = new MiddlewareDispatcher(new TestContainer(), new Pipeline());
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Final handler class-string must be non-empty.');
@@ -704,10 +704,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         if ($request->getQueryParams()['mutate'] ?? false) {
-                            $control = $request->getAttribute(DispatchRuntime::class);
+                            $control = $request->getAttribute(PipelineControl::class);
 
-                            if (!$control instanceof DispatchRuntime) {
-                                throw new \LogicException('Dispatch control attribute is missing.');
+                            if (!$control instanceof PipelineControl) {
+                                throw new \LogicException('Pipeline control attribute is missing.');
                             }
 
                             $control->setFinalHandler(new class($this->responseFactory) implements RequestHandlerInterface {
@@ -757,10 +757,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         if ($request->getQueryParams()['mutate'] ?? false) {
-                            $control = $request->getAttribute(DispatchRuntime::class);
+                            $control = $request->getAttribute(PipelineControl::class);
 
-                            if (!$control instanceof DispatchRuntime) {
-                                throw new \LogicException('Dispatch control attribute is missing.');
+                            if (!$control instanceof PipelineControl) {
+                                throw new \LogicException('Pipeline control attribute is missing.');
                             }
 
                             $control->setFinalHandler(AutoResolvedRuntimeFinalHandler::class);
@@ -804,10 +804,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->append(AutoResolvedLazyRuntimeMiddleware::class);
@@ -847,10 +847,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->remove(AutoResolvedLazyRuntimeMiddleware::class);
@@ -893,10 +893,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->setFinalHandler(new class implements RequestHandlerInterface {
@@ -952,10 +952,10 @@ final class MiddlewareDispatcherTest extends TestCase
                             : 'skipper';
                         $response = $handler->handle($request->withAttribute('routePipeline', $current));
 
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->bypassOuter();
@@ -1006,10 +1006,10 @@ final class MiddlewareDispatcherTest extends TestCase
                             ? $current . '>outer'
                             : 'outer';
 
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->bypassOuter();
@@ -1036,10 +1036,10 @@ final class MiddlewareDispatcherTest extends TestCase
                             ? $current . '>inner'
                             : 'inner';
 
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->bypassOuter();
@@ -1088,10 +1088,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $this->trace->add('inner:enter');
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->bypassOuter();
@@ -1138,10 +1138,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
                         $this->trace->add('short:enter');
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $control->bypassOuter();
@@ -1192,10 +1192,10 @@ final class MiddlewareDispatcherTest extends TestCase
 
                 public function handle(ServerRequestInterface $request): ResponseInterface
                 {
-                    $control = $request->getAttribute(DispatchRuntime::class);
+                    $control = $request->getAttribute(PipelineControl::class);
 
-                    if (!$control instanceof DispatchRuntime) {
-                        throw new \LogicException('Dispatch control attribute is missing.');
+                    if (!$control instanceof PipelineControl) {
+                        throw new \LogicException('Pipeline control attribute is missing.');
                     }
 
                     $control->bypassOuter();
@@ -1222,10 +1222,10 @@ final class MiddlewareDispatcherTest extends TestCase
                         ServerRequestInterface $request,
                         RequestHandlerInterface $handler,
                     ): ResponseInterface {
-                        $control = $request->getAttribute(DispatchRuntime::class);
+                        $control = $request->getAttribute(PipelineControl::class);
 
-                        if (!$control instanceof DispatchRuntime) {
-                            throw new \LogicException('Dispatch control attribute is missing.');
+                        if (!$control instanceof PipelineControl) {
+                            throw new \LogicException('Pipeline control attribute is missing.');
                         }
 
                         $fiber = new \Fiber(static function () use ($control): void {
@@ -1313,10 +1313,10 @@ final class MiddlewareDispatcherTest extends TestCase
 
                 public function handle(ServerRequestInterface $request): ResponseInterface
                 {
-                    $control = $request->getAttribute(DispatchRuntime::class);
+                    $control = $request->getAttribute(PipelineControl::class);
 
-                    if (!$control instanceof DispatchRuntime) {
-                        throw new \LogicException('Dispatch control attribute is missing.');
+                    if (!$control instanceof PipelineControl) {
+                        throw new \LogicException('Pipeline control attribute is missing.');
                     }
 
                     $control->append(new RecordRouteMiddleware($this->responseFactory, $this->trace, 'late-append'));
@@ -1365,8 +1365,8 @@ final class MiddlewareDispatcherTest extends TestCase
         $dispatcher->handle(new FakeServerRequest('/dispatcher-attribute', 'GET'));
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertInstanceOf(DispatchRuntime::class, $capturedRequest->getAttribute(DispatchRuntime::class));
-        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(DispatchRuntime::class));
+        self::assertInstanceOf(PipelineControl::class, $capturedRequest->getAttribute(PipelineControl::class));
+        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(PipelineControl::class));
     }
 
     public function test_it_sets_dispatch_control_on_custom_request_attribute_when_missing(): void
@@ -1401,9 +1401,9 @@ final class MiddlewareDispatcherTest extends TestCase
         $dispatcher->handle(new FakeServerRequest('/dispatcher-attribute-custom', 'GET'));
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertInstanceOf(DispatchRuntime::class, $capturedRequest->getAttribute($attributeName));
+        self::assertInstanceOf(PipelineControl::class, $capturedRequest->getAttribute($attributeName));
         self::assertNotSame($dispatcher, $capturedRequest->getAttribute($attributeName));
-        self::assertNull($capturedRequest->getAttribute(DispatchRuntime::class));
+        self::assertNull($capturedRequest->getAttribute(PipelineControl::class));
     }
 
     public function test_it_does_not_override_existing_request_attribute(): void
@@ -1436,12 +1436,12 @@ final class MiddlewareDispatcherTest extends TestCase
 
         $dispatcher->handle(
             (new FakeServerRequest('/dispatcher-attribute-existing', 'GET'))
-                ->withAttribute(DispatchRuntime::class, $existingDispatcher),
+                ->withAttribute(PipelineControl::class, $existingDispatcher),
         );
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertSame($existingDispatcher, $capturedRequest->getAttribute(DispatchRuntime::class));
-        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(DispatchRuntime::class));
+        self::assertSame($existingDispatcher, $capturedRequest->getAttribute(PipelineControl::class));
+        self::assertNotSame($dispatcher, $capturedRequest->getAttribute(PipelineControl::class));
     }
 
     public function test_it_does_not_set_request_attribute_when_attribute_name_is_empty(): void
@@ -1475,7 +1475,7 @@ final class MiddlewareDispatcherTest extends TestCase
         $dispatcher->handle(new FakeServerRequest('/dispatcher-attribute-empty', 'GET'));
 
         self::assertInstanceOf(ServerRequestInterface::class, $capturedRequest);
-        self::assertNull($capturedRequest->getAttribute(DispatchRuntime::class));
+        self::assertNull($capturedRequest->getAttribute(PipelineControl::class));
         self::assertArrayNotHasKey('', $capturedRequest->getAttributes());
     }
 
@@ -1687,11 +1687,11 @@ final class MiddlewareDispatcherTest extends TestCase
      * @param list<MiddlewareInterface|class-string<MiddlewareInterface>> $middlewares
      * @param RequestHandlerInterface|class-string<RequestHandlerInterface> $finalHandler
      */
-    private function createConfig(
+    private function createPipeline(
         array $middlewares = [],
         RequestHandlerInterface|string $finalHandler = '',
-    ): DispatchConfig {
-        return new DispatchConfig($middlewares, $finalHandler);
+    ): Pipeline {
+        return new Pipeline($middlewares, $finalHandler);
     }
 
     /**
@@ -1702,11 +1702,11 @@ final class MiddlewareDispatcherTest extends TestCase
         ContainerInterface $container,
         array $middlewares = [],
         RequestHandlerInterface|string $finalHandler = '',
-        string $attributeName = DispatchRuntime::class,
+        string $attributeName = PipelineControl::class,
     ): MiddlewareDispatcher {
         return new MiddlewareDispatcher(
             $container,
-            $this->createConfig($middlewares, $finalHandler),
+            $this->createPipeline($middlewares, $finalHandler),
             $attributeName,
         );
     }

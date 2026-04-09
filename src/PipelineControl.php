@@ -8,16 +8,16 @@ use Fiber;
 use RuntimeException;
 
 /**
- * Per-request runtime control object exposed through the request attributes.
+ * Per-request pipeline control object exposed through the request attributes.
  *
  * Mutation methods change only the remaining tail of the current request and do
  * not affect the next request handled by the dispatcher instance.
  */
-final class DispatchRuntime extends DispatchConfig
+final class PipelineControl extends Pipeline
 {
-    protected function __construct(DispatchConfig $config)
+    protected function __construct(Pipeline $pipeline)
     {
-        parent::__construct($config->middlewares, $config->finalHandler);
+        parent::__construct($pipeline->middlewares, $pipeline->finalHandler);
     }
 
     /**

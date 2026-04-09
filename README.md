@@ -148,7 +148,7 @@ Middleware class strings remain lazy in both phases and are resolved only when e
 new MiddlewareDispatcher(
     ContainerInterface $container,
     array $middlewares,
-    RequestHandlerInterface|string $finalHandler,
+    RequestHandlerInterface|string $finalHandler = '',
     string $attributeName = DispatchControl::class,
 )
 ```
@@ -165,7 +165,7 @@ Before `handle()` starts, `MiddlewareDispatcher` acts as the configuration objec
 
 - `append(..., $after)` inserts after the last matching middleware in the configured pipeline. If no match is found, it appends to the end of the configured pipeline.
 - `prepend(..., $before)` inserts before the first matching middleware in the configured pipeline. If no match is found, it prepends to the start of the configured pipeline.
-- `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It may be provided either as a direct handler instance or as a class string resolved lazily through the configured container. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
+- `setFinalHandler()` replaces the configured final handler. The final handler is the `RequestHandlerInterface` that runs when the middleware pipeline is exhausted. It may be provided either as a direct handler instance or as a class string resolved lazily through the configured container. The constructor may also omit it temporarily by leaving the default empty string and setting it later before `handle()`. It is not a middleware entry, so it is managed separately from `append()`, `prepend()`, and `remove()`.
 - The optional `$attributeName` constructor argument controls how dispatch-time `DispatchControl` is exposed during `handle()`. See [Dispatch-Time Control](#dispatch-time-control).
 
 ## Dispatch-Time Control

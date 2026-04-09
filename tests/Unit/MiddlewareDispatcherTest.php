@@ -617,6 +617,25 @@ final class MiddlewareDispatcherTest extends TestCase
         self::assertSame('replaced', $secondResponse->getHeaderLine('X-Final-Handler'));
     }
 
+    public function test_it_can_be_constructed_without_final_handler_until_it_is_set_before_handle(): void
+    {
+        AutoResolvedReplacementFinalHandler::$constructed = 0;
+
+        $dispatcher = new MiddlewareDispatcher(
+            new TestContainer(),
+            [],
+        );
+
+        $dispatcher->setFinalHandler(AutoResolvedReplacementFinalHandler::class);
+
+        self::assertSame(0, AutoResolvedReplacementFinalHandler::$constructed);
+
+        $response = $dispatcher->handle(new FakeServerRequest('/set-final-after-empty-constructor', 'GET'));
+
+        self::assertSame(1, AutoResolvedReplacementFinalHandler::$constructed);
+        self::assertSame('replacement', $response->getHeaderLine('X-Final-Handler'));
+    }
+
     public function test_it_can_use_a_lazy_class_string_final_handler_from_constructor(): void
     {
         AutoResolvedConfiguredFinalHandler::$constructed = 0;
@@ -654,6 +673,19 @@ final class MiddlewareDispatcherTest extends TestCase
 
         self::assertSame(1, AutoResolvedReplacementFinalHandler::$constructed);
         self::assertSame('replacement', $response->getHeaderLine('X-Final-Handler'));
+    }
+
+    public function test_it_throws_when_final_handler_is_not_configured(): void
+    {
+        $dispatcher = new MiddlewareDispatcher(
+            new TestContainer(),
+            [],
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Final handler class-string must be non-empty.');
+
+        $dispatcher->handle(new FakeServerRequest('/missing-final-handler', 'GET'));
     }
 
     public function test_it_can_set_final_handler_for_current_request_only_during_execution(): void

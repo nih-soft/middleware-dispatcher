@@ -30,7 +30,7 @@ During `handle()`, the dispatcher creates a dispatch-time control object and may
 new MiddlewareDispatcher(
     ContainerInterface $container,
     array $middlewares,
-    RequestHandlerInterface|string $finalHandler,
+    RequestHandlerInterface|string $finalHandler = '',
     string $attributeName = DispatchControl::class,
 )
 ```

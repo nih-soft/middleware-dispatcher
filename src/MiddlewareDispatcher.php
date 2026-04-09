@@ -32,7 +32,7 @@ final class MiddlewareDispatcher extends DispatcherData implements RequestHandle
     public function __construct(
         private readonly ContainerInterface $container,
         array $middlewares,
-        RequestHandlerInterface|string $finalHandler,
+        RequestHandlerInterface|string $finalHandler = '',
         private readonly string $attributeName = DispatchControl::class,
     ) {
         $this->middlewares = $middlewares;
